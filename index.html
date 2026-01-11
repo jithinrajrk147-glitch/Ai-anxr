@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="UTF-8">
+  <title>Wiki AI Chat</title>
+  <link rel="icon" type="image/png" href="js.jpg">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    #chat-container {
+      background: #fff;
+      width: 500px;
+      height: 600px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #chat-box {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    .message {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 90%;
+      word-wrap: break-word;
+    }
+    .user {
+      background: #007bff;
+      color: #fff;
+      align-self: flex-end;
+    }
+    .bot {
+      background: #e0e0e0;
+      color: #000;
+      align-self: flex-start;
+    }
+    #input-container {
+      display: flex;
+      border-top: 1px solid #ddd;
+    }
+    #user-input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      outline: none;
+    }
+    #send-btn {
+      padding: 10px 20px;
+      border: none;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="chat-box"></div>
+    <div id="input-container">
+      <input type="text" id="user-input" placeholder="Ask me anything...">
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    function appendMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.classList.add('message', sender);
+      msg.innerText = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function fetchWikiFull(query) {
+      const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&explaintext=true&origin=*&titles=${encodeURIComponent(query)}&exsectionformat=plain`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const page = Object.values(data.query.pages)[0];
+      if (page && page.extract) {
+        return page.extract;
+      } else {
+        return "Sorry, no full information found on that topic.";
+      }
+    }
+
+    async function handleInput() {
+      const query = userInput.value.trim();
+      if (!query) return;
+      appendMessage(query, 'user');
+      userInput.value = '';
+
+      appendMessage("Fetching full Wikipedia content...", 'bot');
+      const wikiData = await fetchWikiFull(query);
+
+      // Remove "Fetching..." message
+      chatBox.lastChild.remove();
+
+      // Split into smaller parts for long content
+      const chunkSize = 1000; // You can adjust this for larger or smaller chunks
+      for (let i = 0; i < wikiData.length; i += chunkSize) {
+        appendMessage(wikiData.substring(i, i + chunkSize), 'bot');
+      }
+    }
+
+    sendBtn.addEventListener('click', handleInput);
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleInput();
+    });
+  </script>
+</body>
+</html>
